@@ -14,13 +14,31 @@ const (
 	lineBx, lineBy = 30, 40
 )
 
-// animate advances the line one animation step by moving PointB one cell
-// to the right. It takes a pointer so the caller's line is updated.
-func animate(l *shapes.Line) {
-	if l == nil {
+// animator holds animation state across ticks. A plain animate(l *Line)
+// function cannot bounce or oscillate on its own because it has no memory
+// of direction or phase, so that state lives here instead.
+type animator struct {
+	dx int // horizontal direction of PointB: +1 right, -1 left
+}
+
+// step advances the animation one tick: PointB moves horizontally and
+// bounces off the left and right screen edges. Width is the screen width
+// in cells and is used for edge detection.
+func (a *animator) step(l *shapes.Line, width int) {
+	if a == nil || l == nil || width <= 1 {
 		return
 	}
-	l.PointB.X++
+	if a.dx == 0 {
+		a.dx = 1
+	}
+	l.PointB.X += a.dx
+	if l.PointB.X >= width-1 {
+		l.PointB.X = width - 1
+		a.dx = -1
+	} else if l.PointB.X <= 0 {
+		l.PointB.X = 0
+		a.dx = 1
+	}
 }
 
 func main() {
@@ -58,6 +76,8 @@ func main() {
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 
+	anim := &animator{dx: 1}
+
 	// Event loop
 	for {
 		// Draw before Show so each frame is visible immediately.
@@ -67,8 +87,9 @@ func main() {
 
 		select {
 		case <-ticker.C:
-			// One animation step per second: PointB moves right.
-			animate(&demoLine)
+			// One animation step per second: PointB bounces sideways.
+			w, _ := s.Size()
+			anim.step(&demoLine, w)
 		case ev := <-s.EventQ():
 			switch ev := ev.(type) {
 			case *tcell.EventResize:
