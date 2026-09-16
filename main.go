@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Sheriff-Hoti/gometry/animations"
 	"github.com/Sheriff-Hoti/gometry/shapes"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
@@ -14,36 +15,66 @@ const (
 	lineBx, lineBy = 30, 40
 )
 
-// animator holds animation state across ticks. A plain animate(l *Line)
-// function cannot bounce or oscillate on its own because it has no memory
-// of direction or phase, so that state lives here instead.
-type animator struct {
-	dx int // horizontal direction of PointB: +1 right, -1 left
+// tickInterval is the delay between animation steps.
+const tickInterval = 100 * time.Millisecond
+
+// demo bundles a line with the animation step driving it and the style
+// drawing it.
+type demo struct {
+	line  shapes.Line
+	step  animations.Step
+	style tcell.Style
 }
 
-// step advances the animation one tick: PointB moves horizontally and
-// bounces off the left and right screen edges. Width is the screen width
-// in cells and is used for edge detection.
-func (a *animator) step(l *shapes.Line, width int) {
-	if a == nil || l == nil || width <= 1 {
+// drawLabel writes text in the top-left corner of the screen.
+func drawLabel(s tcell.Screen, style tcell.Style, text string) {
+	if s == nil {
 		return
 	}
-	if a.dx == 0 {
-		a.dx = 1
+	for i, r := range text {
+		s.Put(i, 0, string(r), style)
 	}
-	l.PointB.X += a.dx
-	if l.PointB.X >= width-1 {
-		l.PointB.X = width - 1
-		a.dx = -1
-	} else if l.PointB.X <= 0 {
-		l.PointB.X = 0
-		a.dx = 1
+}
+
+// newDemos builds one line per animation so bounce, pendulum, and orbit
+// all play at once.
+func newDemos() []demo {
+	demos := []demo{
+		{
+			line: shapes.Line{
+				PointA: shapes.Point{X: lineAx, Y: lineAy},
+				PointB: shapes.Point{X: lineBx, Y: lineBy},
+			},
+			style: tcell.StyleDefault.Foreground(color.Aqua).Background(color.Reset),
+		},
+		{
+			line: shapes.Line{
+				PointA: shapes.Point{X: 4, Y: 3},
+				PointB: shapes.Point{X: 24, Y: 8},
+			},
+			style: tcell.StyleDefault.Foreground(color.Yellow).Background(color.Reset),
+		},
+		{
+			line: shapes.Line{
+				PointA: shapes.Point{X: 58, Y: 12},
+				PointB: shapes.Point{X: 66, Y: 12},
+			},
+			style: tcell.StyleDefault.Foreground(color.Green).Background(color.Reset),
+		},
 	}
+	steps := []animations.Step{
+		animations.Bounce(1),
+		animations.Pendulum(6, 1),
+		animations.Orbit(20),
+	}
+	for i := range demos {
+		demos[i].step = steps[i]
+	}
+	return demos
 }
 
 func main() {
 	defStyle := tcell.StyleDefault.Background(color.Reset).Foreground(color.Reset)
-	lineStyle := tcell.StyleDefault.Foreground(color.Aqua).Background(color.Reset)
 
 	// Initialize screen
 	s, err := tcell.NewScreen()
@@ -68,28 +99,28 @@ func main() {
 	}
 	defer quit()
 
-	demoLine := shapes.Line{
-		PointA: shapes.Point{X: lineAx, Y: lineAy},
-		PointB: shapes.Point{X: lineBx, Y: lineBy},
-	}
+	demos := newDemos()
 
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
-
-	anim := &animator{dx: 1}
 
 	// Event loop
 	for {
 		// Draw before Show so each frame is visible immediately.
 		s.Clear()
-		demoLine.Draw(s, lineStyle)
+		for i := range demos {
+			demos[i].line.Draw(s, demos[i].style)
+		}
+		drawLabel(s, defStyle, "bounce + pendulum + orbit (Esc to quit)")
 		s.Show()
 
 		select {
 		case <-ticker.C:
-			// One animation step per second: PointB bounces sideways.
-			w, _ := s.Size()
-			anim.step(&demoLine, w)
+			// One animation step per tick for every line.
+			w, h := s.Size()
+			for i := range demos {
+				demos[i].step(&demos[i].line, w, h)
+			}
 		case ev := <-s.EventQ():
 			switch ev := ev.(type) {
 			case *tcell.EventResize:
