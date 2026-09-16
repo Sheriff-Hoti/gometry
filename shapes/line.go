@@ -7,12 +7,10 @@ import (
 type Line struct {
 	PointA Point
 	PointB Point
-	Screen tcell.Screen
-	Style  tcell.Style
 }
 
 type Drawable interface {
-	Draw()
+	Draw(s tcell.Screen, style tcell.Style)
 }
 
 func abs(n int) int {
@@ -23,10 +21,17 @@ func abs(n int) int {
 }
 
 func sign(n int) int {
-	if n < 0 {
+	switch {
+	case n < 0:
 		return -1
 	}
-	return 1
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // Points returns every cell along the line from PointA to PointB,
@@ -38,7 +43,7 @@ func (l Line) Points() []Point {
 	sy := sign(l.PointB.Y - l.PointA.Y)
 	err := dx + dy
 
-	var pts []Point
+	pts := make([]Point, 0, max(dx, -dy)+1)
 	x, y := l.PointA.X, l.PointA.Y
 	for {
 		pts = append(pts, Point{X: x, Y: y})
@@ -58,8 +63,15 @@ func (l Line) Points() []Point {
 	return pts
 }
 
-func (l Line) Draw() {
+func (l Line) Draw(s tcell.Screen, style tcell.Style) {
+	if s == nil {
+		return
+	}
+	w, h := s.Size()
 	for _, p := range l.Points() {
-		l.Screen.Put(p.X, p.Y, "█", l.Style)
+		if p.X < 0 || p.Y < 0 || p.X >= w || p.Y >= h {
+			continue
+		}
+		s.Put(p.X, p.Y, "█", style)
 	}
 }
