@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Sheriff-Hoti/gometry/shapes"
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
 )
@@ -114,6 +115,14 @@ func main() {
 		// Update screen
 		s.Show()
 
+		l := shapes.Line{
+			PointA: shapes.Point{X: 31, Y: 11},
+			PointB: shapes.Point{X: 30, Y: 12},
+			Screen: s,
+			Style:  defStyle,
+		}
+
+		l.Draw()
 		// Poll event (this can be in a select statement as well)
 		ev := <-s.EventQ()
 
