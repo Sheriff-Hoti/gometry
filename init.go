@@ -116,8 +116,8 @@ func main() {
 		s.Show()
 
 		l := shapes.Line{
-			PointA: shapes.Point{X: 31, Y: 11},
-			PointB: shapes.Point{X: 30, Y: 12},
+			PointA: shapes.Point{X: 10, Y: 11},
+			PointB: shapes.Point{X: 30, Y: 40},
 			Screen: s,
 			Style:  defStyle,
 		}
