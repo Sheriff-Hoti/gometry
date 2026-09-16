@@ -1,0 +1,138 @@
+/* Shared course stylesheet. Every lesson and reference links here so the
+   course looks like one course. Tufte-ish: serif body, narrow measure. */
+
+:root {
+  --ink: #1a1a1a;
+  --muted: #5c5c5c;
+  --accent: #0b5fff;
+  --paper: #fffff8;
+  --wash: #f4f1e8;
+  --line: #ddd6c3;
+  --good: #0a7a3d;
+  --cell: 26px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: Georgia, "Times New Roman", serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.55;
+  margin: 0;
+  padding: 2rem 1rem 4rem;
+}
+
+main {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+h1, h2, h3 { line-height: 1.25; }
+h1 { font-size: 1.9rem; margin-bottom: 0.2rem; }
+.subtitle { color: var(--muted); margin-top: 0; }
+
+a { color: var(--accent); }
+
+code, pre {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--wash);
+  border: 1px solid var(--line);
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+table { border-collapse: collapse; margin: 1rem 0; }
+th, td {
+  border: 1px solid var(--line);
+  padding: 0.3rem 0.6rem;
+  text-align: left;
+  font-size: 0.92em;
+}
+
+nav.course {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.6rem;
+  margin-bottom: 1.6rem;
+  font-size: 0.9em;
+  color: var(--muted);
+}
+
+.callout {
+  border-left: 3px solid var(--accent);
+  background: var(--wash);
+  padding: 0.7rem 1rem;
+  margin: 1.2rem 0;
+}
+
+.win {
+  border-left: 3px solid var(--good);
+  background: #eef7f0;
+  padding: 0.7rem 1rem;
+  margin: 1.2rem 0;
+}
+
+.quiz button {
+  font: inherit;
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin: 0.35rem 0;
+  padding: 0.5rem 0.8rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.quiz button:hover { border-color: var(--accent); }
+.quiz .verdict { font-weight: bold; margin-top: 0.5rem; }
+.quiz .verdict.right { color: var(--good); }
+.quiz .verdict.wrong { color: #a00; }
+
+/* ---- grid simulator (assets/grid-sim.js renders into these) ---- */
+.sim { margin: 1.4rem 0; }
+.sim .grid {
+  display: inline-grid;
+  gap: 2px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.7rem;
+}
+.sim .cell {
+  width: var(--cell);
+  height: var(--cell);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #bbb;
+}
+.sim .cell.ideal { background: #eef3ff; color: #9db8f0; }
+.sim .cell.on { background: var(--ink); color: #fff; }
+.sim .cell.head { background: var(--accent); color: #fff; }
+.sim .controls { margin-top: 0.6rem; }
+.sim .controls button {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.3rem 0.7rem;
+  margin-right: 0.3rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.sim .controls button:hover { border-color: var(--accent); }
+.sim .meta {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  color: var(--muted);
+  margin-top: 0.4rem;
+  min-height: 2.6em;
+}
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .sim .controls, .quiz button { display: none; }
+}

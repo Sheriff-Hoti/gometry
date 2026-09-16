@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2: one loop, every direction</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<nav class="course">gometry course · <a href="0001-error-term.html">← lesson 1: the error term</a> ·
+lesson 2 of the Bresenham arc · <a href="../reference/bresenham-line.html">cheat sheet</a> ·
+<a href="0003-edge-cases.html">next: edge cases →</a></nav>
+
+<h1>One loop, every direction</h1>
+<p class="subtitle">The same two <code>if</code>s draw steep, reversed, and negative-going lines. Nothing branches on direction — <code>sx</code>/<code>sy</code> carry it.</p>
+
+<h2>Recap in one line</h2>
+<p>On the shallow line from <a href="0001-error-term.html">lesson 1</a>,
+<code>e2&nbsp;&gt;=&nbsp;dy</code> is true every tick (x is the driving axis)
+and <code>e2&nbsp;&lt;=&nbsp;dx</code> fires exactly |dy|&nbsp;=&nbsp;2 times —
+one diagonal per unit of height. Now flip the shape.</p>
+
+<h2>The mirror: a steep line</h2>
+<p>Take your test case <code>steep up</code>, (0,0)&nbsp;→&nbsp;(2,5):</p>
+<pre>dx = 2   dy = -5   sx = 1   sy = 1   err = -3</pre>
+<p>Watch the simulator. This time <code>e2&nbsp;&lt;=&nbsp;dx</code> is true
+every tick — <strong>y is the driving axis</strong> — and
+<code>e2&nbsp;&gt;=&nbsp;dy</code> fires only |dx|&nbsp;=&nbsp;2 times.
+Count the diagonal moves: exactly 2, one per unit of <em>width</em>. The rule
+from lesson 1 didn't change; the axes changed roles
+(<a href="https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm">Wikipedia, the generalization</a>).</p>
+<div id="sim-steep"></div>
+
+<h2>Direction comes free</h2>
+<p>Now the reversed horizontal from your tests, (4,3)&nbsp;→&nbsp;(1,3):
+<code>dx&nbsp;=&nbsp;3</code>, <code>dy&nbsp;=&nbsp;0</code>,
+<code>sx&nbsp;=&nbsp;−1</code>, <code>sy&nbsp;=&nbsp;0</code>.</p>
+<table>
+<tr><th>Pixel</th><th><code>e2</code></th><th>Moves</th><th>Lands on</th></tr>
+<tr><td>(4,3), err=3</td><td>6</td><td><code>x += −1</code> (second <code>if</code>: 6 ≤ 3 is false)</td><td>(3,3)</td></tr>
+<tr><td>(3,3), err=3</td><td>6</td><td><code>x += −1</code></td><td>(2,3)</td></tr>
+<tr><td>(2,3), err=3</td><td>6</td><td><code>x += −1</code></td><td>(1,3) — stop</td></tr>
+</table>
+<div class="callout">
+<strong>The point.</strong> Nobody wrote "if going left". <code>sign()</code>
+decided that once, before the loop, and the loop just obeys <code>sx</code>.
+Negative coordinates work the same way: the loop never assumes positions are
+positive — only <em>differences</em> feed <code>dx/dy/sx/sy</code>. That is why
+your <code>negative coords</code> test passes with zero special-casing.
+</div>
+
+<h2>Check yourself</h2>
+<div class="quiz" id="quiz">
+<p>On a steep line, which test fires every single tick?</p>
+<button data-right="0">e2 &gt;= dy</button>
+<button data-right="1">e2 &lt;= dx</button>
+<p class="verdict" hidden></p>
+</div>
+
+<div class="win">
+<strong>Your win.</strong> Hand-trace <code>steep up</code> (0,0)→(2,5) and say
+aloud, per tick, which axis drives and which one occasionally joins. Then
+explain in one sentence what <code>sx</code> and <code>sy</code> buy you.
+Next and last: edge cases — the single point, the pure vertical, and where
+<code>Draw</code> clips what <code>Points</code> returns.
+</div>
+
+<p><strong>Primary source for this lesson:</strong>
+<a href="https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm">Bresenham's line algorithm (Wikipedia)</a> —
+the "all slopes" treatment shows the driving axis swapping exactly as above.</p>
+
+<p><em>Anything fuzzy? Ask me before moving on — lesson 3 builds on this.</em></p>
+</main>
+
+<script src="../assets/grid-sim.js"></script>
+<script src="../assets/bresenham-trace.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ax = 0, ay = 0, bx = 2, by = 5;
+  var steps = BresenhamTrace.trace(ax, ay, bx, by);
+  var ideal = [];
+  for (var y = ay; y <= by; y++) {
+    ideal.push({ x: Math.round(ax + (bx - ax) * (y - ay) / (by - ay)), y: y });
+  }
+  GridSim.mount(document.getElementById("sim-steep"), {
+    cols: 3, rows: 6, steps: steps, ideal: ideal
+  });
+
+  var quiz = document.getElementById("quiz");
+  var verdict = quiz.querySelector(".verdict");
+  quiz.querySelectorAll("button").forEach(function (btn) {
+    btn.onclick = function () {
+      var right = btn.getAttribute("data-right") === "1";
+      verdict.hidden = false;
+      verdict.className = "verdict " + (right ? "right" : "wrong");
+      verdict.textContent = right
+        ? "Right — on steep lines y drives, so e2 <= dx never fails."
+        : "Not quite — e2 >= dy is the x-driver's test, and x only joins twice here.";
+    };
+  });
+})();
+</script>
+</body>
+</html>

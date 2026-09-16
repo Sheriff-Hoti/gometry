@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 3: edge cases</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<nav class="course">gometry course · <a href="0002-all-directions.html">← lesson 2: one loop, every direction</a> ·
+lesson 3 of the Bresenham arc · <a href="../reference/bresenham-line.html">cheat sheet</a></nav>
+
+<h1>Edge cases</h1>
+<p class="subtitle">The zero-length line, the pure vertical, and the question of who clips the screen — each resolved by one deliberate line of code.</p>
+
+<h2>Case 1: the line that is a point</h2>
+<p>Your test <code>single point</code> plots (4,4)→(4,4) and expects exactly one
+pixel. Trace the setup: <code>dx&nbsp;=&nbsp;0</code>, <code>dy&nbsp;=&nbsp;0</code>,
+<code>sx&nbsp;=&nbsp;0</code>, <code>sy&nbsp;=&nbsp;0</code>, <code>err&nbsp;=&nbsp;0</code>.
+Then read the loop order in <code>Points()</code>:</p>
+<pre>plot (x, y)          # first!
+stop if (x, y) == B  # (4,4) == B — done, nothing ever moves</pre>
+<div class="callout">
+<strong>The point.</strong> Plot-then-check is what makes zero-length lines
+work with no special case. Had the check come first, or the moves before the
+plot, this test would need an <code>if</code> of its own. Ordering <em>is</em>
+the feature.
+</div>
+
+<h2>Case 2: the pure vertical</h2>
+<p>Your test <code>vertical</code>, (2,0)&nbsp;→&nbsp;(2,3):
+<code>dx&nbsp;=&nbsp;0</code>, <code>dy&nbsp;=&nbsp;−3</code>,
+<code>sx&nbsp;=&nbsp;0</code>, <code>sy&nbsp;=&nbsp;1</code>. The x-test
+<code>e2&nbsp;&gt;=&nbsp;dy</code> can never fire usefully — and even if it did,
+<code>x&nbsp;+=&nbsp;0</code> goes nowhere. The axis is pinned by
+<code>sx&nbsp;=&nbsp;0</code>, so y drives every tick. Predict each step, then
+run it:</p>
+<div id="sim-vertical"></div>
+<p>(Pure horizontals are the mirror image — <code>sy&nbsp;=&nbsp;0</code> pins y.
+You traced one in <a href="0002-all-directions.html">lesson 2</a>.)</p>
+
+<h2>Case 3: who clips the screen?</h2>
+<p><code>Points()</code> takes no screen argument — look at its signature. It
+happily returns pixels at (−2,0) or (10,10) on a 5×5 screen, because it is pure
+geometry. Clipping lives in exactly one place, <code>Draw()</code>:</p>
+<pre>if p.X &lt; 0 || p.Y &lt; 0 || p.X &gt;= w || p.Y &gt;= h {
+    continue  // not our pixel, not our problem
+}</pre>
+<p>Your <code>clips out of bounds points</code> test proves it: the line
+(0,0)→(10,10) on a 5×5 fake screen plots exactly (0,0)…(4,4). Geometry and
+screen bounds never mix — that split is why <code>Points()</code> is trivially
+testable with no screen at all.</p>
+
+<h2>Check yourself</h2>
+<div class="quiz" id="quiz">
+<p>Which function owns screen-edge clipping?</p>
+<button data-right="1">Draw does</button>
+<button data-right="0">Points do</button>
+<p class="verdict" hidden></p>
+</div>
+
+<div class="win">
+<strong>Your win — and the arc complete.</strong> You can now hand-trace any
+line your renderer draws, in any direction, including the degenerate ones —
+and you can state the design split in one sentence: <code>Points</code> does
+geometry, <code>Draw</code> does the screen. That was the whole mission.
+</div>
+
+<p><strong>Primary source for this lesson:</strong>
+<a href="https://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm">Bresenham's line algorithm (Wikipedia)</a> —
+plus your own <code>shapes/line_test.go</code>, which is now readable as a
+specification, not just a test file.</p>
+
+<p><em>Want to go further? The natural next mission is Bresenham circles for
+the shapes package — say the word. Otherwise, revisit the
+<a href="../reference/bresenham-line.html">cheat sheet</a> in a few days;
+spacing beats re-reading.</em></p>
+</main>
+
+<script src="../assets/grid-sim.js"></script>
+<script src="../assets/bresenham-trace.js"></script>
+<script>
+(function () {
+  "use strict";
+  var ax = 2, ay = 0, bx = 2, by = 3;
+  var steps = BresenhamTrace.trace(ax, ay, bx, by);
+  var ideal = [];
+  for (var y = ay; y <= by; y++) {
+    ideal.push({ x: ax, y: y });
+  }
+  GridSim.mount(document.getElementById("sim-vertical"), {
+    cols: 5, rows: 4, steps: steps, ideal: ideal
+  });
+
+  var quiz = document.getElementById("quiz");
+  var verdict = quiz.querySelector(".verdict");
+  quiz.querySelectorAll("button").forEach(function (btn) {
+    btn.onclick = function () {
+      var right = btn.getAttribute("data-right") === "1";
+      verdict.hidden = false;
+      verdict.className = "verdict " + (right ? "right" : "wrong");
+      verdict.textContent = right
+        ? "Right — Points() never sees the screen; Draw() skips out-of-bounds cells."
+        : "Not quite — check the signatures: Points() takes no screen argument.";
+    };
+  });
+})();
+</script>
+</body>
+</html>
