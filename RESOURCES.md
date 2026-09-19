@@ -12,6 +12,12 @@
   Structured explainer with decision-parameter framing. Use for: cross-checking lesson wording on the error term.
 - [Q&A: Understanding Bresenham's error accumulation (Stack Overflow)](https://stackoverflow.com/questions/35422997/understanding-bresenhams-error-accumulation-part-of-the-algorithm)
   Common confusion about the error term, answered. Use for: predicting and defusing the user's likely sticking points.
+- [Article: 3D projection (Wikipedia)](https://en.wikipedia.org/wiki/3D_projection)
+  Perspective vs orthographic projection with diagrams. Use for: verifying lesson claims about the perspective divide.
+- [Article: Rotation matrix (Wikipedia)](https://en.wikipedia.org/wiki/Rotation_matrix)
+  Canonical rotation matrices in 2D/3D. Use for: verifying the RotateX/Y/Z formulas sign-for-sign.
+- [Tutorial: Transformations (LearnOpenGL)](https://learnopengl.com/Getting-started/Transformations)
+  Vectors, matrices, and combining rotations, explained for builders. Use for: alternative framings of rotation order and composition.
 
 ## Wisdom (Communities)
 

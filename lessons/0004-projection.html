@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 4: the divide</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<nav class="course">gometry course · <a href="0003-edge-cases.html">← lesson 3: edge cases</a> ·
+lesson 4 (3D arc 1 of 2) · <a href="../reference/wireframe-3d.html">cheat sheet</a></nav>
+
+<h1>The divide</h1>
+<p class="subtitle">One division turns depth into size: farther points land closer to the middle. That is the entire camera.</p>
+
+<h2>The setup in your code</h2>
+<p><code>shapes/vec3.go</code> puts the camera at the origin staring down +Z
+(X right, Y down-screen, like the terminal). Projection is one line per axis:</p>
+<pre>px = cx + x·focal/z      py = cy + y·focal/z</pre>
+<p>Take your cube's numbers: a vertex at x=10, z=32, focal=48 (your pixel
+height on an 80×24 terminal). Offset = 10·48/32 = <strong>15 px</strong> right
+of center. Now double the depth to 64: offset = 10·48/64 = <strong>7.5
+px</strong>. Twice as far, half as far from the middle — perspective is just
+that ratio
+(<a href="https://en.wikipedia.org/wiki/3D_projection">Wikipedia</a>).</p>
+
+<h2>See it</h2>
+<p>Drag the <strong>focal</strong> slider below — but first predict: halving
+focal from 48 to 24 makes the cube…? Then check the V7 readout: it shows one
+vertex's full journey from (x,&nbsp;y,&nbsp;z) to pixel on every frame.</p>
+<div id="sim-project"></div>
+
+<div class="callout">
+<strong>Focal is zoom.</strong> Bigger focal = bigger and flatter (faraway
+objects shrink less). Your <code>main.go</code> sets focal to the pixel
+height every frame, which is why the cube keeps its size on resize. And
+<code>z&nbsp;≤&nbsp;0</code> returns false — your
+<code>cube behind the camera projects nothing</code> test — because dividing
+by zero or negative depth is meaningless, so the edge is skipped.
+</div>
+
+<h2>Check yourself</h2>
+<div class="quiz" id="quiz">
+<p>A point's Z doubles. Its screen offset from center becomes…</p>
+<button data-right="1">×0.5</button>
+<button data-right="0">×2.0</button>
+<p class="verdict" hidden></p>
+</div>
+
+<div class="win">
+<strong>Your win.</strong> Given x=10, z=32, focal=48, compute the 15 px
+offset by hand, then verify it in the V7 readout. Next: rotation matrices
+and the <code>Spin</code> closure that turns this still life.
+</div>
+
+<p><strong>Primary source for this lesson:</strong>
+<a href="https://en.wikipedia.org/wiki/3D_projection">3D projection (Wikipedia)</a> —
+perspective projection is the divide you just did by hand.</p>
+
+<p><em>Anything fuzzy? Ask me — lesson 5 builds directly on the readout above.</em></p>
+</main>
+
+<script src="../assets/wireframe.js"></script>
+<script>
+(function () {
+  "use strict";
+  Wireframe.mount(document.getElementById("sim-project"), {
+    size: 10, depth: 32, focal: 48, rotX: 0.35, rotY: 0.5, auto: false
+  });
+
+  var quiz = document.getElementById("quiz");
+  var verdict = quiz.querySelector(".verdict");
+  quiz.querySelectorAll("button").forEach(function (btn) {
+    btn.onclick = function () {
+      var right = btn.getAttribute("data-right") === "1";
+      verdict.hidden = false;
+      verdict.className = "verdict " + (right ? "right" : "wrong");
+      verdict.textContent = right
+        ? "Right — offset is proportional to 1/z."
+        : "Not quite — the divide puts z underneath, so doubling z halves the offset.";
+    };
+  });
+})();
+</script>
+</body>
+</html>

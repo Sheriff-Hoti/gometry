@@ -136,3 +136,36 @@ nav.course {
   body { background: #fff; padding: 0; }
   .sim .controls, .quiz button { display: none; }
 }
+
+/* ---- wireframe visualizer (assets/wireframe.js renders into these) ---- */
+.wire { margin: 1.4rem 0; }
+.wire canvas {
+  border: 1px solid var(--line);
+  background: #fff;
+  max-width: 100%;
+}
+.wire .readout {
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.82em;
+  color: var(--muted);
+  margin-top: 0.4rem;
+  min-height: 2.6em;
+}
+.wire .controls { margin-top: 0.6rem; }
+.wire .controls button {
+  font: inherit;
+  font-size: 0.85em;
+  padding: 0.3rem 0.7rem;
+  margin-right: 0.6rem;
+  background: #fff;
+  border: 1px solid var(--line);
+  cursor: pointer;
+}
+.wire .controls button:hover { border-color: var(--accent); }
+.wire .controls label {
+  font-size: 0.85em;
+  color: var(--muted);
+  margin-right: 0.6rem;
+  white-space: nowrap;
+}
+.wire .controls input[type="range"] { vertical-align: middle; }
