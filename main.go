@@ -10,21 +10,8 @@ import (
 	"github.com/gdamore/tcell/v3/color"
 )
 
-const (
-	lineAx, lineAy = 10, 16
-	lineBx, lineBy = 30, 40
-)
-
 // tickInterval is the delay between animation steps.
-const tickInterval = 100 * time.Millisecond
-
-// demo bundles a line with the animation step driving it and the style
-// drawing it.
-type demo struct {
-	line  shapes.Line
-	step  animations.Step
-	style tcell.Style
-}
+const tickInterval = 60 * time.Millisecond
 
 // drawLabel writes text in the top-left corner of the screen.
 func drawLabel(s tcell.Screen, style tcell.Style, text string) {
@@ -34,43 +21,6 @@ func drawLabel(s tcell.Screen, style tcell.Style, text string) {
 	for i, r := range text {
 		s.Put(i, 0, string(r), style)
 	}
-}
-
-// newDemos builds one line per animation so bounce, pendulum, and orbit
-// all play at once.
-func newDemos() []demo {
-	demos := []demo{
-		{
-			line: shapes.Line{
-				PointA: shapes.Point{X: lineAx, Y: lineAy},
-				PointB: shapes.Point{X: lineBx, Y: lineBy},
-			},
-			style: tcell.StyleDefault.Foreground(color.Aqua).Background(color.Reset),
-		},
-		{
-			line: shapes.Line{
-				PointA: shapes.Point{X: 4, Y: 3},
-				PointB: shapes.Point{X: 24, Y: 8},
-			},
-			style: tcell.StyleDefault.Foreground(color.Yellow).Background(color.Reset),
-		},
-		{
-			line: shapes.Line{
-				PointA: shapes.Point{X: 58, Y: 12},
-				PointB: shapes.Point{X: 66, Y: 12},
-			},
-			style: tcell.StyleDefault.Foreground(color.Green).Background(color.Reset),
-		},
-	}
-	steps := []animations.Step{
-		animations.Bounce(1),
-		animations.Pendulum(6, 1),
-		animations.Orbit(20),
-	}
-	for i := range demos {
-		demos[i].step = steps[i]
-	}
-	return demos
 }
 
 func main() {
@@ -99,30 +49,37 @@ func main() {
 	}
 	defer quit()
 
-	demos := newDemos()
+	// A static cube tilted so all three faces show. Depth 32 with the
+	// focal length tracking screen height keeps it ~30px wide on an
+	// 80x24 terminal; DrawHalf clips whatever falls outside.
+	cube := shapes.Cube{
+		Center: shapes.Vec3{Z: 32},
+		Size:   10,
+		RotX:   0.35,
+		RotY:   0.5,
+	}
+	cubeStyle := tcell.StyleDefault.Foreground(color.Aqua).Background(color.Reset)
+	spin := animations.Spin(0.06, 0.1)
 
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
 
 	// Event loop
 	for {
-		// Draw before Show so each frame is visible immediately.
+		// Project the 12 edges to pixel space and draw them. Focal is
+		// the pixel height, center is the pixel screen middle.
+		w, h := s.Size()
 		s.Clear()
-		for i := range demos {
-			demos[i].line.DrawHalf(s, demos[i].style)
+		focal := float64(2 * h)
+		for _, l := range cube.Lines(focal, float64(w)/2, float64(h)) {
+			l.DrawHalf(s, cubeStyle)
 		}
-		drawLabel(s, defStyle, "bounce + pendulum + orbit (Esc to quit)")
+		drawLabel(s, defStyle, "spinning cube (Esc to quit)")
 		s.Show()
 
 		select {
 		case <-ticker.C:
-			// One animation step per tick for every line. Steps run in
-			// double-height pixel space (see DrawHalf): x pixels map 1:1
-			// to cells, y pixels are doubled, hence the 2*h heights.
-			w, h := s.Size()
-			for i := range demos {
-				demos[i].step(&demos[i].line, w, 2*h)
-			}
+			spin(&cube)
 		case ev := <-s.EventQ():
 			switch ev := ev.(type) {
 			case *tcell.EventResize:

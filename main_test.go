@@ -3,50 +3,37 @@ package main
 import (
 	"testing"
 
-	"github.com/Sheriff-Hoti/gometry/shapes"
+	"github.com/gdamore/tcell/v3"
 )
 
-func TestDemosAllPlay(t *testing.T) {
-	demos := newDemos()
-	if len(demos) != 3 {
-		t.Fatalf("len(demos) = %d, want 3 (one line per animation)", len(demos))
-	}
-	for i := range demos {
-		if demos[i].step == nil {
-			t.Fatalf("demos[%d].step is nil", i)
-		}
-	}
+// textScreen records Put text per cell.
+type textScreen struct {
+	tcell.Screen
+	cells map[[2]int]string
+}
 
-	before := make([]shapes.Line, len(demos))
-	for i := range demos {
-		before[i] = demos[i].line
+func (f *textScreen) Put(x, y int, text string, _ tcell.Style) (string, int) {
+	if f.cells == nil {
+		f.cells = make(map[[2]int]string)
 	}
-	for i := range demos {
-		demos[i].step(&demos[i].line, 80, 24)
-	}
+	f.cells[[2]int{x, y}] = text
+	return "", 1
+}
 
-	// Bounce line: B moves right, Y pinned.
-	if demos[0].line.PointB.X != before[0].PointB.X+1 {
-		t.Errorf("bounce B.X = %d, want %d", demos[0].line.PointB.X, before[0].PointB.X+1)
-	}
-	if demos[0].line.PointB.Y != before[0].PointB.Y {
-		t.Errorf("bounce B.Y = %d, want unchanged %d", demos[0].line.PointB.Y, before[0].PointB.Y)
-	}
-	// Pendulum line: B moves down, X pinned.
-	if demos[1].line.PointB.Y != before[1].PointB.Y+1 {
-		t.Errorf("pendulum B.Y = %d, want %d", demos[1].line.PointB.Y, before[1].PointB.Y+1)
-	}
-	if demos[1].line.PointB.X != before[1].PointB.X {
-		t.Errorf("pendulum B.X = %d, want unchanged %d", demos[1].line.PointB.X, before[1].PointB.X)
-	}
-	// Orbit line: pivot (58,12), radius 8, first 18° step lands on (66,14).
-	if demos[2].line.PointB != (shapes.Point{X: 66, Y: 14}) {
-		t.Errorf("orbit B = %v, want {66 14}", demos[2].line.PointB)
-	}
-	// No animation touches another line's anchor.
-	for i := range demos {
-		if demos[i].line.PointA != before[i].PointA {
-			t.Errorf("demos[%d] PointA = %v, want unchanged %v", i, demos[i].line.PointA, before[i].PointA)
+func TestDrawLabel(t *testing.T) {
+	t.Run("writes text along the top row", func(t *testing.T) {
+		f := &textScreen{}
+		drawLabel(f, tcell.StyleDefault, "hi")
+		if f.cells[[2]int{0, 0}] != "h" || f.cells[[2]int{1, 0}] != "i" {
+			t.Errorf("got %v, want h at (0,0) and i at (1,0)", f.cells)
 		}
-	}
+		if len(f.cells) != 2 {
+			t.Errorf("got %d cells, want 2", len(f.cells))
+		}
+	})
+
+	t.Run("nil screen is a no-op", func(t *testing.T) {
+		// Must not panic.
+		drawLabel(nil, tcell.StyleDefault, "hi")
+	})
 }
