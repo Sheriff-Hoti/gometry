@@ -109,17 +109,19 @@ func main() {
 		// Draw before Show so each frame is visible immediately.
 		s.Clear()
 		for i := range demos {
-			demos[i].line.Draw(s, demos[i].style)
+			demos[i].line.DrawHalf(s, demos[i].style)
 		}
 		drawLabel(s, defStyle, "bounce + pendulum + orbit (Esc to quit)")
 		s.Show()
 
 		select {
 		case <-ticker.C:
-			// One animation step per tick for every line.
+			// One animation step per tick for every line. Steps run in
+			// double-height pixel space (see DrawHalf): x pixels map 1:1
+			// to cells, y pixels are doubled, hence the 2*h heights.
 			w, h := s.Size()
 			for i := range demos {
-				demos[i].step(&demos[i].line, w, h)
+				demos[i].step(&demos[i].line, w, 2*h)
 			}
 		case ev := <-s.EventQ():
 			switch ev := ev.(type) {
