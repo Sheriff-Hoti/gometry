@@ -7,18 +7,18 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-// fakeScreen records Put calls while reporting a fixed size.
-type fakeScreen struct {
+// cellScreen records the last glyph written to each cell and reads it
+// back, like a real screen.
+type cellScreen struct {
 	tcell.Screen
-	w, h int
-	puts []Point
+	w, h  int
+	cells map[Point]string
 }
 
-func (f *fakeScreen) Size() (int, int) { return f.w, f.h }
+func (f *cellScreen) Size() (int, int) { return f.w, f.h }
 
-func (f *fakeScreen) Put(x, y int, _ string, _ tcell.Style) (string, int) {
-	f.puts = append(f.puts, Point{X: x, Y: y})
-	return "", 1
+func (f *cellScreen) Get(x, y int) (string, tcell.Style, int) {
+	return f.cells[Point{X: x, Y: y}], tcell.StyleDefault, 1
 }
 
 func TestPoints(t *testing.T) {
@@ -111,52 +111,10 @@ func TestDraw(t *testing.T) {
 		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 3, Y: 0}}.Draw(nil, tcell.StyleDefault)
 	})
 
-	t.Run("plots every point in bounds", func(t *testing.T) {
-		f := &fakeScreen{w: 10, h: 10}
-		Line{PointA: Point{X: 1, Y: 1}, PointB: Point{X: 3, Y: 1}}.Draw(f, tcell.StyleDefault)
-		want := []Point{{X: 1, Y: 1}, {X: 2, Y: 1}, {X: 3, Y: 1}}
-		if !reflect.DeepEqual(f.puts, want) {
-			t.Errorf("got %v, want %v", f.puts, want)
-		}
-	})
-
-	t.Run("clips out of bounds points", func(t *testing.T) {
-		f := &fakeScreen{w: 5, h: 5}
-		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 10, Y: 10}}.Draw(f, tcell.StyleDefault)
-		want := []Point{{X: 0, Y: 0}, {X: 1, Y: 1}, {X: 2, Y: 2}, {X: 3, Y: 3}, {X: 4, Y: 4}}
-		if !reflect.DeepEqual(f.puts, want) {
-			t.Errorf("got %v, want %v", f.puts, want)
-		}
-	})
-}
-
-// cellScreen records the last glyph written to each cell.
-type cellScreen struct {
-	tcell.Screen
-	w, h  int
-	cells map[Point]string
-}
-
-func (f *cellScreen) Size() (int, int) { return f.w, f.h }
-
-func (f *cellScreen) Put(x, y int, text string, _ tcell.Style) (string, int) {
-	if f.cells == nil {
-		f.cells = make(map[Point]string)
-	}
-	f.cells[Point{X: x, Y: y}] = text
-	return "", 1
-}
-
-func TestDrawHalf(t *testing.T) {
-	t.Run("nil screen is a no-op", func(t *testing.T) {
-		// Must not panic.
-		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 3, Y: 0}}.DrawHalf(nil, tcell.StyleDefault)
-	})
-
 	t.Run("even rows draw upper half, odd rows lower half", func(t *testing.T) {
 		f := &cellScreen{w: 10, h: 10}
-		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 2, Y: 0}}.DrawHalf(f, tcell.StyleDefault)
-		Line{PointA: Point{X: 0, Y: 3}, PointB: Point{X: 2, Y: 3}}.DrawHalf(f, tcell.StyleDefault)
+		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 2, Y: 0}}.Draw(f, tcell.StyleDefault)
+		Line{PointA: Point{X: 0, Y: 3}, PointB: Point{X: 2, Y: 3}}.Draw(f, tcell.StyleDefault)
 		want := map[Point]string{
 			{X: 0, Y: 0}: "▀", {X: 1, Y: 0}: "▀", {X: 2, Y: 0}: "▀",
 			{X: 0, Y: 1}: "▄", {X: 1, Y: 1}: "▄", {X: 2, Y: 1}: "▄",
@@ -168,7 +126,17 @@ func TestDrawHalf(t *testing.T) {
 
 	t.Run("both halves of one cell draw full block", func(t *testing.T) {
 		f := &cellScreen{w: 10, h: 10}
-		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 0, Y: 1}}.DrawHalf(f, tcell.StyleDefault)
+		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 0, Y: 1}}.Draw(f, tcell.StyleDefault)
+		want := map[Point]string{{X: 0, Y: 0}: "█"}
+		if !reflect.DeepEqual(f.cells, want) {
+			t.Errorf("got %v, want %v", f.cells, want)
+		}
+	})
+
+	t.Run("separate calls sharing a cell merge to full block", func(t *testing.T) {
+		f := &cellScreen{w: 10, h: 10}
+		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 0, Y: 0}}.Draw(f, tcell.StyleDefault)
+		Line{PointA: Point{X: 0, Y: 1}, PointB: Point{X: 0, Y: 1}}.Draw(f, tcell.StyleDefault)
 		want := map[Point]string{{X: 0, Y: 0}: "█"}
 		if !reflect.DeepEqual(f.cells, want) {
 			t.Errorf("got %v, want %v", f.cells, want)
@@ -177,7 +145,7 @@ func TestDrawHalf(t *testing.T) {
 
 	t.Run("halves share cells without overlap", func(t *testing.T) {
 		f := &cellScreen{w: 10, h: 10}
-		Line{PointA: Point{X: 0, Y: 2}, PointB: Point{X: 1, Y: 3}}.DrawHalf(f, tcell.StyleDefault)
+		Line{PointA: Point{X: 0, Y: 2}, PointB: Point{X: 1, Y: 3}}.Draw(f, tcell.StyleDefault)
 		want := map[Point]string{{X: 0, Y: 1}: "▀", {X: 1, Y: 1}: "▄"}
 		if !reflect.DeepEqual(f.cells, want) {
 			t.Errorf("got %v, want %v", f.cells, want)
@@ -186,8 +154,8 @@ func TestDrawHalf(t *testing.T) {
 
 	t.Run("drops pixels mapping outside the screen", func(t *testing.T) {
 		f := &cellScreen{w: 5, h: 5}
-		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 10, Y: 0}}.DrawHalf(f, tcell.StyleDefault)
-		Line{PointA: Point{X: -4, Y: 0}, PointB: Point{X: -1, Y: 0}}.DrawHalf(f, tcell.StyleDefault)
+		Line{PointA: Point{X: 0, Y: 0}, PointB: Point{X: 10, Y: 0}}.Draw(f, tcell.StyleDefault)
+		Line{PointA: Point{X: -4, Y: 0}, PointB: Point{X: -1, Y: 0}}.Draw(f, tcell.StyleDefault)
 		want := map[Point]string{
 			{X: 0, Y: 0}: "▀", {X: 1, Y: 0}: "▀", {X: 2, Y: 0}: "▀",
 			{X: 3, Y: 0}: "▀", {X: 4, Y: 0}: "▀",
@@ -196,4 +164,13 @@ func TestDrawHalf(t *testing.T) {
 			t.Errorf("got %v, want %v", f.cells, want)
 		}
 	})
+}
+
+// Put records the last glyph written to each cell.
+func (f *cellScreen) Put(x, y int, text string, _ tcell.Style) (string, int) {
+	if f.cells == nil {
+		f.cells = make(map[Point]string)
+	}
+	f.cells[Point{X: x, Y: y}] = text
+	return "", 1
 }

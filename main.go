@@ -51,7 +51,7 @@ func main() {
 
 	// A static cube tilted so all three faces show. Depth 32 with the
 	// focal length tracking screen height keeps it ~30px wide on an
-	// 80x24 terminal; DrawHalf clips whatever falls outside.
+	// 80x24 terminal; Draw clips whatever falls outside.
 	cube := shapes.Cube{
 		Center: shapes.Vec3{Z: 32},
 		Size:   10,
@@ -72,7 +72,7 @@ func main() {
 		s.Clear()
 		focal := float64(2 * h)
 		for _, l := range cube.Lines(focal, float64(w)/2, float64(h)) {
-			l.DrawHalf(s, cubeStyle)
+			l.Draw(s, cubeStyle)
 		}
 		drawLabel(s, defStyle, "spinning cube (Esc to quit)")
 		s.Show()

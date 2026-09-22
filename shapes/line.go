@@ -73,28 +73,6 @@ func (l Line) Draw(s tcell.Screen, style tcell.Style) {
 	}
 	w, h := s.Size()
 	for _, p := range l.Points() {
-		if p.X < 0 || p.Y < 0 || p.X >= w || p.Y >= h {
-			continue
-		}
-		s.Put(p.X, p.Y, "█", style)
-	}
-}
-
-// DrawHalf draws the line treating coordinates as double-height pixels to
-// compensate for terminal cells being ~2x taller than wide: point (x, y)
-// lands on the upper half of cell (x, y/2) when y is even and on the lower
-// half when y is odd. A cell with both halves lit is drawn as a full block
-// (█). Points mapping outside the screen are dropped. Merging happens per
-// call: pixels from separate DrawHalf calls sharing a cell overwrite,
-// last call wins.
-func (l Line) DrawHalf(s tcell.Screen, style tcell.Style) {
-	if s == nil {
-		return
-	}
-	w, h := s.Size()
-	type halves struct{ top, bot bool }
-	cells := make(map[Point]halves)
-	for _, p := range l.Points() {
 		if p.X < 0 || p.Y < 0 {
 			continue
 		}
@@ -102,22 +80,25 @@ func (l Line) DrawHalf(s tcell.Screen, style tcell.Style) {
 		if cx >= w || cy >= h {
 			continue
 		}
-		hb := cells[Point{X: cx, Y: cy}]
-		if p.Y%2 == 0 {
-			hb.top = true
-		} else {
-			hb.bot = true
-		}
-		cells[Point{X: cx, Y: cy}] = hb
-	}
-	for cell, hb := range cells {
-		switch {
-		case hb.top && hb.bot:
-			s.Put(cell.X, cell.Y, "█", style)
-		case hb.top:
-			s.Put(cell.X, cell.Y, "▀", style)
+		top := p.Y%2 == 0
+		cur, _, _ := s.Get(cx, cy)
+		switch cur {
+		case "█":
+			// already complete
+		case "▀":
+			if !top {
+				s.Put(cx, cy, "█", style)
+			}
+		case "▄":
+			if top {
+				s.Put(cx, cy, "█", style)
+			}
 		default:
-			s.Put(cell.X, cell.Y, "▄", style)
+			if top {
+				s.Put(cx, cy, "▀", style)
+			} else {
+				s.Put(cx, cy, "▄", style)
+			}
 		}
 	}
 }

@@ -34,7 +34,7 @@ func (c Cube) Vertices() [8]Vec3 {
 	return vs
 }
 
-// Lines projects the 12 edges to pixel-space lines ready for DrawHalf.
+// Lines projects the 12 edges to pixel-space lines ready for Draw.
 // Focal, cx, cy are passed to Project; edges with an endpoint behind the
 // camera are skipped.
 func (c Cube) Lines(focal, cx, cy float64) []Line {
