@@ -3,6 +3,8 @@
 A spinning 3D wireframe cube in your terminal. It is written in Go and drawn
 with text characters — no graphics window needed.
 
+![Spinning cube demo](docs/demo.gif)
+
 ## How to run it
 
 ```sh
