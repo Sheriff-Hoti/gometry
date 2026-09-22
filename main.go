@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -9,6 +10,26 @@ import (
 	"github.com/gdamore/tcell/v3"
 	"github.com/gdamore/tcell/v3/color"
 )
+
+// Zoom bounds and step for mouse-wheel zooming.
+const (
+	minZoom  = 0.2
+	maxZoom  = 5.0
+	zoomStep = 1.15
+)
+
+// applyZoom returns the zoom factor after one mouse event: wheel up zooms
+// in, wheel down zooms out, anything else leaves it unchanged. The result
+// stays within [minZoom, maxZoom].
+func applyZoom(zoom float64, buttons tcell.ButtonMask) float64 {
+	switch {
+	case buttons&tcell.WheelUp != 0:
+		zoom *= zoomStep
+	case buttons&tcell.WheelDown != 0:
+		zoom /= zoomStep
+	}
+	return min(max(zoom, minZoom), maxZoom)
+}
 
 // tickInterval is the delay between animation steps.
 const tickInterval = 60 * time.Millisecond
@@ -35,6 +56,7 @@ func main() {
 		log.Fatalf("%+v", err)
 	}
 	s.SetStyle(defStyle)
+	s.EnableMouse()
 	s.Clear()
 
 	quit := func() {
@@ -64,17 +86,19 @@ func main() {
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
 
+	zoom := 1.0
+
 	// Event loop
 	for {
 		// Project the 12 edges to pixel space and draw them. Focal is
 		// the pixel height, center is the pixel screen middle.
 		w, h := s.Size()
 		s.Clear()
-		focal := float64(2 * h)
+		focal := float64(2*h) * zoom
 		for _, l := range cube.Lines(focal, float64(w)/2, float64(h)) {
 			l.Draw(s, cubeStyle)
 		}
-		drawLabel(s, defStyle, "spinning cube (Esc to quit)")
+		drawLabel(s, defStyle, fmt.Sprintf("spinning cube (wheel zooms %.1fx, Esc quits)", zoom))
 		s.Show()
 
 		select {
@@ -84,6 +108,10 @@ func main() {
 			switch ev := ev.(type) {
 			case *tcell.EventResize:
 				s.Sync()
+			case *tcell.EventMouse:
+				if ev.Buttons()&(tcell.WheelUp|tcell.WheelDown) != 0 {
+					zoom = applyZoom(zoom, ev.Buttons())
+				}
 			case *tcell.EventKey:
 				if ev.Key() == tcell.KeyEscape || ev.Key() == tcell.KeyCtrlC {
 					return
